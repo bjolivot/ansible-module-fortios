@@ -298,7 +298,7 @@ def main():
         else:
             module.fail_json(msg="Bad ip address format")
 
-
+    #define device
     f = FortiOS( module.params['host'], 
         username=module.params['username'], 
         password=module.params['password'], 
@@ -307,7 +307,7 @@ def main():
     
     path = 'firewall address'
 
-
+    #connect
     try: 
         f.open()
     except:
@@ -316,7 +316,7 @@ def main():
         )
 
  
-    #Load  config
+    #get  config
     try: 
         f.load_config(path=path)
         retkwargs['firewall_address_config'] = f.running_config.to_text()
@@ -326,6 +326,7 @@ def main():
             msg='Error reading running config'
         )
   
+    #Absent State 
     if module.params['state'] == 'absent':
         f.candidate_config[path].del_block(module.params['name'])
         change_string = f.compare_config()
@@ -333,8 +334,12 @@ def main():
             retkwargs['change_string'] = change_string
             retkwargs['changed'] = True
 
+
+    #Present state
     if module.params['state'] == 'present':
+        #define address params
         new_addr = FortiConfig(module.params['name'], 'edit')
+
         if module.params['comment'] is not None:
             new_addr.set_param('comment', '"{0}"'.format(module.params['comment']))
 
@@ -347,7 +352,6 @@ def main():
             new_addr.set_param('type', 'geography')
             new_addr.set_param('country', '"{0}"'.format(module.params['country']))
 
-
         if module.params['interface'] != 'any':
             new_addr.set_param('associated-interface', '"{0}"'.format(module.params['interface']))
 
@@ -358,17 +362,21 @@ def main():
             if module.params['type'] == 'ipmask':
                 new_addr.set_param('subnet', module.params['value'])
 
+        #add to candidate config
         f.candidate_config[path][module.params['name']] = new_addr
+
+        #check if change needed
         change_string = f.compare_config()
         if change_string != "":
             retkwargs['change_string'] = change_string
             retkwargs['changed'] = True
     
-
+    #Commit if not check mode
     if module.check_mode == False and change_string != "":
         try:
             f.commit()
         except FailedCommit as e:
+            #rollback
             module.fail_json(msg="Unable to commit change, check your args, the error was {0}".format(e.message))
 
     module.exit_json(**retkwargs)
