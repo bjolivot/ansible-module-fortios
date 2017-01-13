@@ -37,7 +37,7 @@ $ git clone https://github.com/bjolivot/ansible-module-fortios /home/ansible/lib
 
 * update your ansible.cfg file with following line 
 ```
-library = /home/ansible/library
+library = /home/ansible/library/fortios
 ```
 
 ### Documentation
